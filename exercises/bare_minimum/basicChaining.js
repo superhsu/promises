@@ -10,46 +10,24 @@
 var request = require('request');
 var fs = require('fs');
 var Promise = require('bluebird');
-var db = {};
-Promise.promisifyAll(db);
-
-db.readFileFunc = function(readFilePath) {
-  return new Promise((resolve, reject) => {
-    fs.readFile(readFilePath, null, function(err, data) { 
-    resolve(data.toString().split('\n')[0]);
-  });
-  });
-};
-
-db.requestUserData = function(data) {
-  return new Promise((resolve, reject) => {
-    request('https://api.github.com/users/' + data, (err, res)=>{
-      resolve(res);
-    });
-  });
-};
-
-db.writeFileFunc = function(writeFilePath, data) {
-  return new Promise((resolve, reject) => {
-    fs.writeFile(writeFilePath, JSON.stringify(data), (err)=> {});
-  });
-};
+var getGitHubProfileAsync = require('./promisification').getGitHubProfileAsync;
+var pluckFirstLineFromFileAsync = require('./promiseConstructor').pluckFirstLineFromFileAsync;
+var writeFile = Promise.promisify(fs.writeFile);
 
 var fetchProfileAndWriteToFile = function(readFilePath, writeFilePath) {
   // TODO
-  return function(){
-    return db.readFileFunc(readFilePath);
-  }()
-    .then(function(data){
-      return db.requestUserData(data);
+  return pluckFirstLineFromFileAsync(readFilePath)
+    .then(function(gitHubHandle) {
+      return getGitHubProfileAsync(gitHubHandle);
     })
-    .then(function(data) {
-      return db.writeFileFunc(writeFilePath, data);
+    .then(function(gitHubProfile) {
+      return JSON.stringify(gitHubProfile, null, 2);
     })
-
-  
+    .then(function(stringifyWriteFilePath) {
+      return writeFile(writeFilePath, stringifyWriteFilePath);
+    });
 };
-
+// fetchProfileAndWriteToFile('test/files/github_handle', 'output.txt')
 // Export these functions so we can test them
 module.exports = {
   fetchProfileAndWriteToFile: fetchProfileAndWriteToFile

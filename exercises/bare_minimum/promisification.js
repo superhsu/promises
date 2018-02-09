@@ -69,7 +69,7 @@ var generateRandomTokenAsync = function() {
   return new Promise (function(resolve, reject) {
     crypto.randomBytes(20, function(err, buffer) {
       if (err) { return reject(err); }
-      resolve(buffer.toString('hex'));
+      resolve(buffer.toString('hex')); 
     });
   });
 };
